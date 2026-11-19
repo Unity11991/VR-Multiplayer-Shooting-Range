@@ -167,6 +167,28 @@ namespace ShootingRange.Input
             set { if (ActiveTrackingProvider != null) ActiveTrackingProvider.IsLeftHanded = value; }
         }
 
+        public void Teleport(Vector3 floorPosition, Quaternion rotation)
+        {
+            EnsureInitialized();
+            if (ActiveTrackingProvider != null)
+            {
+                ActiveTrackingProvider.Teleport(floorPosition, rotation);
+            }
+            else
+            {
+                if (_desktopSimulator != null) _desktopSimulator.Teleport(floorPosition, rotation);
+                if (_openXRProvider != null) _openXRProvider.Teleport(floorPosition, rotation);
+            }
+
+            transform.position = floorPosition;
+            transform.rotation = rotation;
+            if (transform.parent != null)
+            {
+                transform.parent.position = floorPosition;
+                transform.parent.rotation = rotation;
+            }
+        }
+
         // --- IControllerInputProvider Forwarding ---
         public float GetTrigger(Handedness hand) => ActiveInputProvider != null ? ActiveInputProvider.GetTrigger(hand) : 0f;
         public bool GetTriggerDown(Handedness hand) => ActiveInputProvider != null && ActiveInputProvider.GetTriggerDown(hand);

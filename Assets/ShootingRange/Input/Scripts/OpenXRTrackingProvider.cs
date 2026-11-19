@@ -52,6 +52,20 @@ namespace ShootingRange.Input
         public Quaternion HeadRotation => _headRot;
         public Vector3 HeadVelocity => _headVel;
 
+        public void Teleport(Vector3 floorPosition, Quaternion rotation)
+        {
+            if (transform.parent != null)
+            {
+                transform.parent.position = floorPosition;
+                transform.parent.rotation = rotation;
+            }
+            else
+            {
+                transform.position = floorPosition;
+                transform.rotation = rotation;
+            }
+        }
+
         private void OnEnable()
         {
             InputDevices.deviceConnected += OnDeviceConnected;

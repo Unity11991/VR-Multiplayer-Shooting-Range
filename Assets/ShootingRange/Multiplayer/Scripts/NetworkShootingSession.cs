@@ -136,13 +136,17 @@ namespace ShootingRange.Multiplayer
                 nm.NetworkConfig = new NetworkConfig
                 {
                     NetworkTransport = transport,
-                    TickRate = 60
+                    TickRate = 60,
+                    ConnectionApproval = true
                 };
             }
 
-            // Ensure PlayerPrefab is assigned so both players spawn and see each other
+            // Ensure ConnectionApprovalCallback & PlayerPrefab are assigned so players spawn at discrete lane stalls
             if (NetworkManager.Singleton != null && NetworkManager.Singleton.NetworkConfig != null)
             {
+                NetworkManager.Singleton.NetworkConfig.ConnectionApproval = true;
+                NetworkManager.Singleton.ConnectionApprovalCallback = ConnectionApprovalCallback;
+
                 if (NetworkManager.Singleton.NetworkConfig.PlayerPrefab == null)
                 {
                     var avatarPrefab = Resources.Load<GameObject>("NetworkPlayerAvatar");
@@ -154,6 +158,19 @@ namespace ShootingRange.Multiplayer
                 }
             }
         }
+
+        private static void ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+        {
+            response.Approved = true;
+            response.CreatePlayerObject = true;
+            ulong clientId = request.ClientNetworkId;
+            response.Position = SpawnPointDefinitions.GetSpawnPosition(clientId);
+            response.Rotation = SpawnPointDefinitions.GetSpawnRotation(clientId);
+        }
+
+        public Vector3 GetSpawnPosition(ulong clientId) => SpawnPointDefinitions.GetSpawnPosition(clientId);
+        public Quaternion GetSpawnRotation(ulong clientId) => SpawnPointDefinitions.GetSpawnRotation(clientId);
+        public string GetSpawnLaneName(ulong clientId) => SpawnPointDefinitions.GetLaneName(clientId);
 
         public override void OnNetworkSpawn()
         {

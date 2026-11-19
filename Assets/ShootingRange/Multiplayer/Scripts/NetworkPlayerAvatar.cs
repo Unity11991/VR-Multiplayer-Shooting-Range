@@ -101,6 +101,23 @@ namespace ShootingRange.Multiplayer
                 if (_rightHandVisual != null) _rightHandVisual.gameObject.SetActive(false);
 
                 ResolveLocalTracking();
+
+                // Teleport local player camera & tracking to assigned discrete lane spawn point
+                Vector3 spawnPos = SpawnPointDefinitions.GetSpawnPosition(OwnerClientId);
+                Quaternion spawnRot = SpawnPointDefinitions.GetSpawnRotation(OwnerClientId);
+
+                if (_localTracking != null)
+                {
+                    _localTracking.Teleport(spawnPos, spawnRot);
+                }
+                else
+                {
+                    var sim = FindFirstObjectByType<ShootingRange.Input.DesktopVRSimulator>();
+                    if (sim != null)
+                    {
+                        sim.Teleport(spawnPos, spawnRot);
+                    }
+                }
             }
             else
             {
@@ -110,10 +127,11 @@ namespace ShootingRange.Multiplayer
                 if (_leftHandVisual != null) _leftHandVisual.gameObject.SetActive(true);
                 if (_rightHandVisual != null) _rightHandVisual.gameObject.SetActive(true);
 
-                // Customize nametag and visor based on ClientId
+                // Customize nametag and visor based on ClientId and assigned Lane
                 ulong clientId = OwnerClientId;
                 bool isHostPlayer = clientId == 0;
-                string label = isHostPlayer ? "PLAYER 1 [HOST]" : "PLAYER 2 [GUEST]";
+                string laneName = SpawnPointDefinitions.GetLaneName(clientId);
+                string label = isHostPlayer ? $"PLAYER 1 [HOST - {laneName}]" : $"PLAYER {clientId + 1} [GUEST - {laneName}]";
                 if (_nametagText != null)
                 {
                     _nametagText.text = label;
@@ -123,6 +141,19 @@ namespace ShootingRange.Multiplayer
                 if (_visorRenderer != null && _visorRenderer.material != null)
                 {
                     _visorRenderer.material.color = isHostPlayer ? new Color(0f, 1f, 1f) : new Color(1f, 0.6f, 0.1f);
+                }
+
+                // Initial position at designated spawn point before receiving network frames
+                Vector3 spawnPos = SpawnPointDefinitions.GetSpawnPosition(clientId);
+                Quaternion spawnRot = SpawnPointDefinitions.GetSpawnRotation(clientId);
+                transform.position = spawnPos;
+                transform.rotation = spawnRot;
+                _targetHeadPos = spawnPos + Vector3.up * 1.7f;
+                _targetHeadRot = spawnRot;
+                if (_headVisual != null)
+                {
+                    _headVisual.position = _targetHeadPos;
+                    _headVisual.rotation = _targetHeadRot;
                 }
 
                 _remoteHeldInLeftHand = _heldWeaponHand.Value == 1;

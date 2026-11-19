@@ -86,7 +86,8 @@ namespace ShootingRange.Editor
             nm.NetworkConfig = new Unity.Netcode.NetworkConfig
             {
                 NetworkTransport = transport,
-                TickRate = 60
+                TickRate = 60,
+                ConnectionApproval = true
             };
 
             NetworkAvatarGenerator.EnsureAvatarPrefab();
@@ -376,6 +377,21 @@ namespace ShootingRange.Editor
                 rubberMat.transform.localScale = new Vector3(0.85f, 0.15f, 0.80f);
                 rubberMat.GetComponent<Renderer>().sharedMaterial = pal.RubberMat;
                 Object.DestroyImmediate(rubberMat.GetComponent<Collider>());
+
+                // Floor Standing Mat (Non-slip rubber stall standing pad)
+                var floorMat = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                floorMat.name = $"FloorShootingMat_Lane_{i + 1}";
+                floorMat.transform.SetParent(laneObj.transform);
+                floorMat.transform.position = new Vector3(x, 0.005f, 0.15f);
+                floorMat.transform.localScale = new Vector3(1.5f, 0.01f, 1.2f);
+                floorMat.GetComponent<Renderer>().sharedMaterial = pal.RubberMat;
+                Object.DestroyImmediate(floorMat.GetComponent<Collider>());
+
+                // Designated Player Spawn Point Transform
+                var spawnObj = new GameObject($"SpawnPoint_Lane_{i + 1}");
+                spawnObj.transform.SetParent(laneObj.transform);
+                spawnObj.transform.position = new Vector3(x, 0f, 0f);
+                spawnObj.transform.rotation = Quaternion.identity;
 
                 // Steel Table Legs
                 CreateBenchLeg(table.transform, new Vector3(-0.45f, -5f, -0.4f), pal.Steel);
@@ -1123,6 +1139,13 @@ namespace ShootingRange.Editor
             rifleDispenserObj.transform.position = new Vector3(0.35f, 0.94f, 1.25f);
             var rifleDispenser = rifleDispenserObj.AddComponent<MagazineDispenser>();
             rifleDispenser.Initialize(WeaponType.Rifle, 30, pal.DarkPolymer, pal.Brass);
+
+            // Infinite Magazine Dispenser on Lane 3 Bench Mat (100M Lane)
+            var lane3DispenserObj = new GameObject("Lane3MagazineDispenser");
+            lane3DispenserObj.transform.SetParent(weaponsRoot.transform, false);
+            lane3DispenserObj.transform.position = new Vector3(3.55f, 0.94f, 1.25f);
+            var lane3Dispenser = lane3DispenserObj.AddComponent<MagazineDispenser>();
+            lane3Dispenser.Initialize(WeaponType.Rifle, 30, pal.DarkPolymer, pal.Brass);
         }
 
         private static void CreateScoreboardAndUI(Transform parent, TargetManager manager, MaterialPalette pal)

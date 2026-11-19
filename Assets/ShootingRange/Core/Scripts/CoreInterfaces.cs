@@ -25,6 +25,53 @@ namespace ShootingRange.Core
         float PlayerHeightOffset { get; set; }
         bool IsSeatedMode { get; set; }
         bool IsLeftHanded { get; set; }
+
+        void Teleport(Vector3 floorPosition, Quaternion rotation);
+    }
+
+    public static class SpawnPointDefinitions
+    {
+        public static readonly Vector3[] Positions = new Vector3[]
+        {
+            new Vector3(0.0f, 0f, 0.0f),    // Index 0: Lane 2 (Center Stall) - Primary Host Stall
+            new Vector3(-3.5f, 0f, 0.0f),   // Index 1: Lane 1 (Left Stall)   - Guest Player 2 Stall
+            new Vector3(3.5f, 0f, 0.0f),    // Index 2: Lane 3 (Right Stall)  - Guest Player 3 Stall
+            new Vector3(-1.75f, 0f, -2.5f)  // Index 3: Ready Area (Stall 4)  - Guest Player 4 Stall
+        };
+
+        public static readonly Quaternion[] Rotations = new Quaternion[]
+        {
+            Quaternion.identity,
+            Quaternion.identity,
+            Quaternion.identity,
+            Quaternion.identity
+        };
+
+        public static readonly string[] LaneNames = new string[]
+        {
+            "LANE 2 (CENTER)",
+            "LANE 1 (LEFT)",
+            "LANE 3 (RIGHT)",
+            "READY AREA"
+        };
+
+        public static Vector3 GetSpawnPosition(ulong clientId)
+        {
+            int idx = (int)(clientId % (ulong)Positions.Length);
+            return Positions[idx];
+        }
+
+        public static Quaternion GetSpawnRotation(ulong clientId)
+        {
+            int idx = (int)(clientId % (ulong)Rotations.Length);
+            return Rotations[idx];
+        }
+
+        public static string GetLaneName(ulong clientId)
+        {
+            int idx = (int)(clientId % (ulong)LaneNames.Length);
+            return LaneNames[idx];
+        }
     }
 
     public interface IControllerInputProvider
@@ -192,6 +239,10 @@ namespace ShootingRange.Core
         void StartHost(ushort port = 7777);
         void StartClient(string ip = "127.0.0.1", ushort port = 7777);
         void Disconnect();
+
+        Vector3 GetSpawnPosition(ulong clientId);
+        Quaternion GetSpawnRotation(ulong clientId);
+        string GetSpawnLaneName(ulong clientId);
 
         void ReportHit(ulong shooterId, int targetId, HitZone zone, float damage, Vector3 hitPoint);
         void BroadcastShot(ulong shooterId, Vector3 muzzlePos, Vector3 velocity, WeaponType weaponType);

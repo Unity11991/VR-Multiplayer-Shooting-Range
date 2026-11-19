@@ -154,6 +154,34 @@ namespace ShootingRange.Input
         public bool IsRightGripHeld => _rightGripHeld;
         public bool IsLeftGripHeld => _leftGripHeld;
 
+        public void Teleport(Vector3 floorPosition, Quaternion rotation)
+        {
+            float currentHeadBaseHeight = (IsSeatedMode ? _seatedHeadHeight : _defaultHeadHeight) + PlayerHeightOffset;
+            _headPosition = new Vector3(floorPosition.x, floorPosition.y + currentHeadBaseHeight, floorPosition.z);
+            _lastHeadPos = _headPosition;
+            _headVelocity = Vector3.zero;
+
+            Vector3 euler = rotation.eulerAngles;
+            _mouseYaw = euler.y;
+            _mousePitch = 0f;
+            _headRotation = Quaternion.Euler(0f, _mouseYaw, 0f);
+
+            transform.position = floorPosition;
+            if (transform.parent != null)
+            {
+                transform.parent.position = floorPosition;
+                transform.parent.rotation = Quaternion.Euler(0f, _mouseYaw, 0f);
+            }
+
+            if (Camera.main != null)
+            {
+                Camera.main.transform.position = _headPosition;
+                Camera.main.transform.rotation = _headRotation;
+            }
+
+            _smoothedPosesInitialized = false;
+        }
+
         private void Awake()
         {
             Vector3 basePos = transform.parent != null ? transform.parent.position : transform.position;

@@ -208,8 +208,9 @@ namespace ShootingRange.UI
                 string statusStr = "Status: Singleplayer (Offline)";
                 if (isActive)
                 {
-                    if (isHost) statusStr = $"Status: HOSTING LAN ROOM (Active)";
-                    else if (isClient) statusStr = $"Status: CONNECTED TO HOST";
+                    string myLane = _networkSession != null ? _networkSession.GetSpawnLaneName(_networkSession.LocalClientId) : "LANE 2";
+                    if (isHost) statusStr = $"Status: HOSTING LAN ROOM [{myLane}]";
+                    else if (isClient) statusStr = $"Status: CONNECTED TO HOST [{myLane}]";
                 }
                 GUILayout.Label(statusStr, _statusStyle);
 
