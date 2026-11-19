@@ -119,6 +119,9 @@ namespace ShootingRange.Editor
             // 10. World-Space Scoreboard & Settings Kiosk
             CreateScoreboardAndUI(envRoot.transform, targetManager, palette);
 
+            // 11. World-Space VR LAN Multiplayer Terminal Kiosk
+            CreateLANTerminalKiosk(envRoot.transform, palette);
+
             // Wire Composition Root
             var compRoot = playerRig.GetComponent<ShootingRangeCompositionRoot>();
             var compRootSo = new SerializedObject(compRoot);
@@ -1319,6 +1322,71 @@ namespace ShootingRange.Editor
             uiSo.FindProperty("_pokeResetScore").objectReferenceValue = pokeReset;
 
             uiSo.ApplyModifiedProperties();
+        }
+
+        private static void CreateLANTerminalKiosk(Transform parent, MaterialPalette pal)
+        {
+            var kioskRoot = new GameObject("WorldSpaceLANTerminalKiosk");
+            kioskRoot.transform.SetParent(parent, false);
+            // Positioned at the right side of the stalls, mirroring the Settings Kiosk on the left
+            kioskRoot.transform.position = new Vector3(5.2f, 0f, 2.2f);
+            kioskRoot.transform.rotation = Quaternion.Euler(0f, -45f, 0f);
+
+            // 1. Pedestal / Base Pillar
+            var pedestal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            pedestal.name = "Pedestal";
+            pedestal.transform.SetParent(kioskRoot.transform, false);
+            pedestal.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+            pedestal.transform.localScale = new Vector3(0.35f, 0.55f, 0.35f);
+            pedestal.GetComponent<Renderer>().sharedMaterial = pal.Steel;
+            AddSurface(pedestal, SurfaceType.Metal, 30f);
+
+            // 2. Main Display Housing
+            var housing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            housing.name = "DisplayHousing";
+            housing.transform.SetParent(kioskRoot.transform, false);
+            housing.transform.localPosition = new Vector3(0f, 1.45f, 0f);
+            housing.transform.localRotation = Quaternion.Euler(-5f, 0f, 0f);
+            housing.transform.localScale = new Vector3(1.75f, 1.15f, 0.12f);
+            housing.GetComponent<Renderer>().sharedMaterial = pal.Steel;
+            AddSurface(housing, SurfaceType.Metal, 25f);
+
+            // 3. Dark Screen Face Inset
+            var screenFace = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            screenFace.name = "ScreenFace";
+            screenFace.transform.SetParent(housing.transform, false);
+            screenFace.transform.localPosition = new Vector3(0f, 0.04f, -0.56f);
+            screenFace.transform.localScale = new Vector3(0.94f, 0.88f, 0.08f);
+            screenFace.GetComponent<Renderer>().sharedMaterial = pal.DarkPolymer;
+            Object.DestroyImmediate(screenFace.GetComponent<Collider>());
+
+            // 4. Console Shelf for Physical Poke Buttons
+            var shelf = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            shelf.name = "ConsoleShelf";
+            shelf.transform.SetParent(kioskRoot.transform, false);
+            shelf.transform.localPosition = new Vector3(0f, 0.95f, -0.28f);
+            shelf.transform.localRotation = Quaternion.Euler(-18f, 0f, 0f);
+            shelf.transform.localScale = new Vector3(1.65f, 0.08f, 0.38f);
+            shelf.GetComponent<Renderer>().sharedMaterial = pal.Steel;
+            AddSurface(shelf, SurfaceType.Metal, 20f);
+
+            // 5. Four Physical 3D Poke Buttons on Front Console Shelf
+            var pokeHost = Create3DPokeButton(shelf.transform, "Poke_Host", "POKE: HOST", new Vector3(-0.52f, 0.05f, 0f), new Color(0.12f, 0.45f, 0.85f), pal);
+            var pokeJoin = Create3DPokeButton(shelf.transform, "Poke_Join", "POKE: JOIN", new Vector3(-0.17f, 0.05f, 0f), new Color(0.12f, 0.70f, 0.35f), pal);
+            var pokeMyIp = Create3DPokeButton(shelf.transform, "Poke_MyIP", "POKE: MY IP", new Vector3(0.17f, 0.05f, 0f), new Color(0.95f, 0.75f, 0.15f), pal);
+            var pokeDisconnect = Create3DPokeButton(shelf.transform, "Poke_Disconnect", "POKE: LEAVE", new Vector3(0.52f, 0.05f, 0f), new Color(0.85f, 0.20f, 0.20f), pal);
+
+            // 6. World Space Canvas on Display Screen
+            var terminalUI = housing.AddComponent<WorldSpaceNetworkUI>();
+            terminalUI.EnsureCanvasConstructed();
+
+            var terminalSo = new SerializedObject(terminalUI);
+            terminalSo.FindProperty("_kioskAnchor").objectReferenceValue = kioskRoot.transform;
+            terminalSo.FindProperty("_pokeHost").objectReferenceValue = pokeHost;
+            terminalSo.FindProperty("_pokeJoin").objectReferenceValue = pokeJoin;
+            terminalSo.FindProperty("_pokeMyIp").objectReferenceValue = pokeMyIp;
+            terminalSo.FindProperty("_pokeDisconnect").objectReferenceValue = pokeDisconnect;
+            terminalSo.ApplyModifiedProperties();
         }
 
         private static VRPokeInteractable Create3DPokeButton(Transform parent, string name, string label, Vector3 localPos, Color capColor, MaterialPalette pal)

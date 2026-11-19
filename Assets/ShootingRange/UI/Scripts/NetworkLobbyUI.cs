@@ -167,6 +167,9 @@ namespace ShootingRange.UI
 
         private void OnGUI()
         {
+            // In VR Headset, WorldSpaceNetworkUI handles all multiplayer interaction in stereo 3D
+            if (UnityEngine.XR.XRSettings.isDeviceActive) return;
+
             InitStyles();
 
             float screenW = Screen.width;
