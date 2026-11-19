@@ -1337,29 +1337,6 @@ namespace ShootingRange.Input
                 GUI.color = Color.yellow;
                 GUI.Label(new Rect(centerX - 240f, centerY + 30f, 480f, 42f), $"[ HELD: {heldWeapon.Type} ({heldWeapon.CurrentAmmo}/{heldWeapon.MagazineCapacity}) ]  ->  [ MAGAZINE ]\nPress E, R, or Left Click to Insert Magazine", promptStyle);
             }
-            else if (heldWeapon != null)
-            {
-                // Weapon Ammo Counter under crosshair
-                GUI.color = new Color(0f, 0f, 0f, 0.75f);
-                GUI.Box(new Rect(centerX - 160f, centerY + 40f, 320f, 32f), GUIContent.none);
-                if (heldWeapon.CurrentAmmo <= 0)
-                {
-                    GUI.color = Color.red;
-                    GUI.Label(new Rect(centerX - 160f, centerY + 40f, 320f, 32f), $"[ {heldWeapon.Type} ]  AMMO: EMPTY!  (Press R or E to Reload)", promptStyle);
-                }
-                else
-                {
-                    GUI.color = Color.cyan;
-                    GUI.Label(new Rect(centerX - 160f, centerY + 40f, 320f, 32f), $"[ {heldWeapon.Type} ]  AMMO: {heldWeapon.CurrentAmmo} / {heldWeapon.MagazineCapacity}", promptStyle);
-                }
-            }
-            else if (heldMag != null)
-            {
-                GUI.color = new Color(0f, 0f, 0f, 0.75f);
-                GUI.Box(new Rect(centerX - 160f, centerY + 40f, 320f, 32f), GUIContent.none);
-                GUI.color = Color.yellow;
-                GUI.Label(new Rect(centerX - 160f, centerY + 40f, 320f, 32f), $"[ HELD: MAGAZINE ({heldMag.CurrentAmmo}/{heldMag.MaxAmmo}) ]\nLook at weapon & press E to insert", promptStyle);
-            }
             else if (_hoveredPokeable != null)
             {
                 GUI.color = new Color(0f, 0f, 0f, 0.85f);
@@ -1387,6 +1364,79 @@ namespace ShootingRange.Input
                 GUI.Box(new Rect(centerX - 180f, centerY + 30f, 360f, 35f), GUIContent.none);
                 GUI.color = Color.green;
                 GUI.Label(new Rect(centerX - 180f, centerY + 30f, 360f, 35f), $"[ {_hoveredName.ToUpper()} ]\nPress E or Left Click to Pick Up", promptStyle);
+            }
+
+            // Weapon & Ammo HUD - Positioned cleanly in Bottom-Right Corner
+            if (heldWeapon != null)
+            {
+                float hudW = 280f;
+                float hudH = 58f;
+                float hudX = Screen.width - hudW - 24f;
+                float hudY = Screen.height - hudH - 24f;
+
+                GUI.color = new Color(0.04f, 0.06f, 0.10f, 0.88f);
+                GUI.Box(new Rect(hudX, hudY, hudW, hudH), GUIContent.none);
+
+                var titleStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.UpperCenter,
+                    fontStyle = FontStyle.Bold,
+                    fontSize = 13
+                };
+                var ammoStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.LowerCenter,
+                    fontStyle = FontStyle.Bold,
+                    fontSize = 15
+                };
+
+                GUI.color = Color.white;
+                GUI.Label(new Rect(hudX, hudY + 5f, hudW, 20f), $"[ {heldWeapon.Type.ToString().ToUpper()} ]", titleStyle);
+
+                if (heldWeapon.CurrentAmmo <= 0)
+                {
+                    GUI.color = Color.red;
+                    GUI.Label(new Rect(hudX, hudY + 26f, hudW, 26f), "AMMO: EMPTY!  (Press R: Reload)", ammoStyle);
+                }
+                else if (heldWeapon.CurrentAmmo <= 5)
+                {
+                    GUI.color = new Color(1f, 0.55f, 0.1f);
+                    GUI.Label(new Rect(hudX, hudY + 26f, hudW, 26f), $"AMMO: {heldWeapon.CurrentAmmo} / {heldWeapon.MagazineCapacity}", ammoStyle);
+                }
+                else
+                {
+                    GUI.color = Color.cyan;
+                    GUI.Label(new Rect(hudX, hudY + 26f, hudW, 26f), $"AMMO: {heldWeapon.CurrentAmmo} / {heldWeapon.MagazineCapacity}", ammoStyle);
+                }
+            }
+            else if (heldMag != null)
+            {
+                float hudW = 280f;
+                float hudH = 58f;
+                float hudX = Screen.width - hudW - 24f;
+                float hudY = Screen.height - hudH - 24f;
+
+                GUI.color = new Color(0.04f, 0.06f, 0.10f, 0.88f);
+                GUI.Box(new Rect(hudX, hudY, hudW, hudH), GUIContent.none);
+
+                var titleStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.UpperCenter,
+                    fontStyle = FontStyle.Bold,
+                    fontSize = 13
+                };
+                var ammoStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.LowerCenter,
+                    fontStyle = FontStyle.Bold,
+                    fontSize = 15
+                };
+
+                GUI.color = Color.white;
+                GUI.Label(new Rect(hudX, hudY + 5f, hudW, 20f), "[ MAGAZINE ]", titleStyle);
+
+                GUI.color = Color.yellow;
+                GUI.Label(new Rect(hudX, hudY + 26f, hudW, 26f), $"AMMO: {heldMag.CurrentAmmo} / {heldMag.MaxAmmo}", ammoStyle);
             }
 
             // Tactical Controls Box in Top-Left Corner
