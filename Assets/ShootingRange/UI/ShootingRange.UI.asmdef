@@ -1,0 +1,24 @@
+{
+    "name": "ShootingRange.UI",
+    "rootNamespace": "ShootingRange.UI",
+    "references": [
+        "ShootingRange.Core",
+        "ShootingRange.Input",
+        "ShootingRange.Interaction",
+        "ShootingRange.Weapons",
+        "ShootingRange.Save",
+        "ShootingRange.Targets",
+        "ShootingRange.Replay",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

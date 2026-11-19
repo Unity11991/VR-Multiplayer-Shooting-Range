@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a577567c26fa48c41aa204f84386dcc6, type: 3}
+  m_Name: Weapon_Pistol_9mm
+  m_EditorClassIdentifier: 
+  _weaponName: Tactical 9mm Pistol
+  _weaponType: 0
+  _weightKg: 1.05
+  _fireRateRpm: 420
+  _defaultFireMode: 0
+  _supportedFireModes: 00000000
+  _burstCount: 3
+  _magazineCapacity: 15
+  _chamberCapacity: 1
+  _jamProbability: 0.004
+  _bulletVelocityMps: 380
+  _bulletMassKg: 0.008
+  _caliberMm: 9
+  _baseDamage: 35
+  _maxRange: 120
+  _recoilPitchDegrees: 0.65
+  _recoilYawDegrees: 0.12
+  _recoilKickBackMeters: 0.02
+  _recoilRecoverySpeed: 20
+  _baseSpreadDegrees: 0.04
+  _maxSpreadDegrees: 0.28
+  _spreadPerShotDegrees: 0.035
+  _fireSound: {fileID: 8300000, guid: 260ab1257f3741f41bef8c5a918d5186, type: 3}
+  _dryFireSound: {fileID: 0}
+  _jamSound: {fileID: 8300000, guid: 6717cc99604b892489e8e7941d2bc6db, type: 3}
+  _slideRackSound: {fileID: 8300000, guid: d41aaebd010e1df498a781965e255927, type: 3}
+  _magazineInsertSound: {fileID: 8300000, guid: d41aaebd010e1df498a781965e255927, type: 3}
+  _magazineEjectSound: {fileID: 8300000, guid: 3b8648fbd36b83b4386b8e440e430f68, type: 3}

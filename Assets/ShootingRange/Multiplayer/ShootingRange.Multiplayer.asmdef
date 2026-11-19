@@ -1,0 +1,22 @@
+{
+    "name": "ShootingRange.Multiplayer",
+    "rootNamespace": "ShootingRange.Multiplayer",
+    "references": [
+        "ShootingRange.Core",
+        "ShootingRange.Weapons",
+        "ShootingRange.Targets",
+        "Unity.Netcode.Runtime",
+        "Unity.Networking.Transport",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
+

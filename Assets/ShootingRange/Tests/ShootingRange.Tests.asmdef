@@ -1,0 +1,33 @@
+{
+    "name": "ShootingRange.Tests",
+    "rootNamespace": "ShootingRange.Tests",
+    "references": [
+        "ShootingRange.Core",
+        "ShootingRange.Input",
+        "ShootingRange.Interaction",
+        "ShootingRange.Weapons",
+        "ShootingRange.Ballistics",
+        "ShootingRange.Targets",
+        "ShootingRange.Multiplayer",
+        "ShootingRange.Replay",
+        "ShootingRange.UI",
+        "ShootingRange.Save",
+        "Unity.Netcode.Runtime",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

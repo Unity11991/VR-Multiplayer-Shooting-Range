@@ -1,0 +1,21 @@
+{
+    "name": "ShootingRange.Weapons",
+    "rootNamespace": "ShootingRange.Weapons",
+    "references": [
+        "ShootingRange.Core",
+        "ShootingRange.Input",
+        "ShootingRange.Interaction",
+        "ShootingRange.Ballistics",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
+

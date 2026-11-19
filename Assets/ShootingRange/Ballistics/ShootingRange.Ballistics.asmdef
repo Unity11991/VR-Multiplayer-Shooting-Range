@@ -1,0 +1,20 @@
+{
+    "name": "ShootingRange.Ballistics",
+    "rootNamespace": "ShootingRange.Ballistics",
+    "references": [
+        "ShootingRange.Core",
+        "Unity.Mathematics",
+        "Unity.Burst",
+        "Unity.Collections"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
+

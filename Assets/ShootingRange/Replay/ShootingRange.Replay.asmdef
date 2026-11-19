@@ -1,0 +1,20 @@
+{
+    "name": "ShootingRange.Replay",
+    "rootNamespace": "ShootingRange.Replay",
+    "references": [
+        "ShootingRange.Core",
+        "ShootingRange.Weapons",
+        "ShootingRange.Targets",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
+

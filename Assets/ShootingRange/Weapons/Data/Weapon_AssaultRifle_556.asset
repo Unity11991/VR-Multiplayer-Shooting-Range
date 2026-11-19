@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a577567c26fa48c41aa204f84386dcc6, type: 3}
+  m_Name: Weapon_AssaultRifle_556
+  m_EditorClassIdentifier: 
+  _weaponName: Tactical AR-15 (5.56mm)
+  _weaponType: 1
+  _weightKg: 3.4
+  _fireRateRpm: 750
+  _defaultFireMode: 2
+  _supportedFireModes: 000000000100000002000000
+  _burstCount: 3
+  _magazineCapacity: 30
+  _chamberCapacity: 1
+  _jamProbability: 0.002
+  _bulletVelocityMps: 910
+  _bulletMassKg: 0.004
+  _caliberMm: 5.56
+  _baseDamage: 48
+  _maxRange: 500
+  _recoilPitchDegrees: 0.35
+  _recoilYawDegrees: 0.08
+  _recoilKickBackMeters: 0.015
+  _recoilRecoverySpeed: 22
+  _baseSpreadDegrees: 0.02
+  _maxSpreadDegrees: 0.2
+  _spreadPerShotDegrees: 0.02
+  _fireSound: {fileID: 8300000, guid: 773900ce46d83ba4c992f4fa2f02d023, type: 3}
+  _dryFireSound: {fileID: 8300000, guid: 3b8648fbd36b83b4386b8e440e430f68, type: 3}
+  _jamSound: {fileID: 0}
+  _slideRackSound: {fileID: 8300000, guid: d41aaebd010e1df498a781965e255927, type: 3}
+  _magazineInsertSound: {fileID: 8300000, guid: d41aaebd010e1df498a781965e255927, type: 3}
+  _magazineEjectSound: {fileID: 8300000, guid: 3b8648fbd36b83b4386b8e440e430f68, type: 3}
