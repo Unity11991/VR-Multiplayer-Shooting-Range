@@ -1377,7 +1377,7 @@ namespace ShootingRange.Editor
             var pokeDisconnect = Create3DPokeButton(shelf.transform, "Poke_Disconnect", "POKE: LEAVE", new Vector3(0.52f, 0.05f, 0f), new Color(0.85f, 0.20f, 0.20f), pal);
 
             // 6. World Space Canvas on Display Screen
-            var terminalUI = housing.AddComponent<WorldSpaceNetworkUI>();
+            var terminalUI = kioskRoot.AddComponent<WorldSpaceNetworkUI>();
             terminalUI.EnsureCanvasConstructed();
 
             var terminalSo = new SerializedObject(terminalUI);

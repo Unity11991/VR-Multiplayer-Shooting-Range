@@ -204,6 +204,9 @@ namespace ShootingRange.Targets
             // Hit flash
             _hitFlashTimer = 0.12f;
 
+            // Floating score popup floating upward and fading out
+            FloatingScoreManager.SpawnScore(hitPoint, zone, amount);
+
             OnTargetHit?.Invoke(this, amount, zone, attackerClientId);
 
             if (_currentHealth <= 0f)
@@ -212,6 +215,7 @@ namespace ShootingRange.Targets
                 _isDestroyed = true;
                 _resetTimer = _resetDelaySeconds;
                 OnDestroyedReaction();
+                FloatingScoreManager.SpawnDestroyedBonus(transform.position + Vector3.up * 0.45f);
                 OnTargetDestroyed?.Invoke(this, attackerClientId);
             }
         }
@@ -258,6 +262,9 @@ namespace ShootingRange.Targets
             _wobbleTimer = 0f;
 
             _hitFlashTimer = 0.12f;
+
+            // Floating score popup floating upward and fading out
+            FloatingScoreManager.SpawnScore(hitPoint, zone, amount);
         }
 
         protected virtual void OnDestroyedReaction()

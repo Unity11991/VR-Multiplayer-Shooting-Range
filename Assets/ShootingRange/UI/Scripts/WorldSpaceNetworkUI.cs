@@ -58,8 +58,8 @@ namespace ShootingRange.UI
         private INetworkSession _networkSession;
         private IControllerInputProvider _input;
         private string _localIpAddress = "127.0.0.1";
-        private Vector3 _dockedLocalPosition = Vector3.zero;
-        private Quaternion _dockedLocalRotation = Quaternion.identity;
+        private static readonly Vector3 s_DefaultStationaryPos = new Vector3(5.2f, 0f, 2.2f);
+        private static readonly Quaternion s_DefaultStationaryRot = Quaternion.Euler(0f, -45f, 0f);
 
         public static WorldSpaceNetworkUI Instance { get; private set; }
 
@@ -74,11 +74,8 @@ namespace ShootingRange.UI
 
             if (_kioskAnchor == null)
             {
-                _kioskAnchor = transform.parent != null ? transform.parent : transform;
+                _kioskAnchor = transform;
             }
-
-            _dockedLocalPosition = transform.localPosition;
-            _dockedLocalRotation = transform.localRotation;
 
             EnsureCanvasConstructed();
         }
@@ -160,7 +157,7 @@ namespace ShootingRange.UI
 
             if (_isSummonedFloating)
             {
-                // Summon floating terminal 1.25m in front of player's headset at eye level
+                // Summon kiosk directly in front of player at comfortable eye level on the floor
                 var cam = Camera.main;
                 if (cam != null)
                 {
@@ -169,19 +166,14 @@ namespace ShootingRange.UI
                     if (forwardFlat.sqrMagnitude < 0.05f) forwardFlat = cam.transform.forward;
                     forwardFlat.Normalize();
 
-                    transform.position = cam.transform.position + forwardFlat * 1.25f + Vector3.down * 0.12f;
+                    Vector3 floorPos = new Vector3(cam.transform.position.x + forwardFlat.x * 1.35f, 0f, cam.transform.position.z + forwardFlat.z * 1.35f);
+                    transform.position = floorPos;
                     transform.rotation = Quaternion.LookRotation(forwardFlat, Vector3.up);
                 }
             }
             else
             {
-                // Dock back to stationary terminal pedestal
-                if (_kioskAnchor != null)
-                {
-                    transform.SetParent(_kioskAnchor, false);
-                    transform.localPosition = _dockedLocalPosition;
-                    transform.localRotation = _dockedLocalRotation;
-                }
+                DockAtTerminal();
             }
 
             PlayClickAudio();
@@ -190,12 +182,8 @@ namespace ShootingRange.UI
         public void DockAtTerminal()
         {
             _isSummonedFloating = false;
-            if (_kioskAnchor != null)
-            {
-                transform.SetParent(_kioskAnchor, false);
-                transform.localPosition = _dockedLocalPosition;
-                transform.localRotation = _dockedLocalRotation;
-            }
+            transform.position = s_DefaultStationaryPos;
+            transform.rotation = s_DefaultStationaryRot;
             PlayClickAudio();
         }
 
@@ -447,8 +435,8 @@ namespace ShootingRange.UI
         }
 
         /// <summary>
-        /// Programmatically builds the entire World-Space VR UI Canvas if loaded in a scene without pre-baked kiosk.
-        /// Zero setup required: works instantly in Play Mode!
+        /// Builds the entire World-Space VR UI Canvas with pedestal housing and console shelf.
+        /// Elevated to eye level (y = 1.45m), completely above the floor!
         /// </summary>
         public void EnsureCanvasConstructed()
         {
@@ -458,11 +446,68 @@ namespace ShootingRange.UI
             try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { }
             if (font == null) { try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { } }
 
-            // 1. Root World-Space Canvas
+            // 1. Build Physical Kiosk Stand (Pedestal, Housing, Console Shelf) if not already built
+            var existingPedestal = transform.Find("Pedestal");
+            if (existingPedestal == null)
+            {
+                // Create Pedestal Base Cylinder from floor up to y = 1.1m
+                var pedestal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pedestal.name = "Pedestal";
+                pedestal.transform.SetParent(transform, false);
+                pedestal.transform.localPosition = new Vector3(0f, 0.55f, 0f);
+                pedestal.transform.localScale = new Vector3(0.35f, 0.55f, 0.35f);
+            }
+
+            var existingHousing = transform.Find("DisplayHousing");
+            if (existingHousing == null)
+            {
+                // Create Display Housing at eye level (y = 1.45m)
+                var housing = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                housing.name = "DisplayHousing";
+                housing.transform.SetParent(transform, false);
+                housing.transform.localPosition = new Vector3(0f, 1.45f, 0f);
+                housing.transform.localRotation = Quaternion.Euler(-5f, 0f, 0f);
+                housing.transform.localScale = new Vector3(1.75f, 1.15f, 0.12f);
+
+                // Dark Screen Face Inset
+                var screenFace = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                screenFace.name = "ScreenFace";
+                screenFace.transform.SetParent(housing.transform, false);
+                screenFace.transform.localPosition = new Vector3(0f, 0.04f, -0.56f);
+                screenFace.transform.localScale = new Vector3(0.94f, 0.88f, 0.08f);
+                Destroy(screenFace.GetComponent<Collider>());
+            }
+
+            var existingShelf = transform.Find("ConsoleShelf");
+            if (existingShelf == null)
+            {
+                // Console Shelf for Physical Poke Buttons
+                var shelf = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                shelf.name = "ConsoleShelf";
+                shelf.transform.SetParent(transform, false);
+                shelf.transform.localPosition = new Vector3(0f, 0.95f, -0.28f);
+                shelf.transform.localRotation = Quaternion.Euler(-18f, 0f, 0f);
+                shelf.transform.localScale = new Vector3(1.65f, 0.08f, 0.38f);
+
+                // 4 Physical 3D Push-Buttons on Front Console Shelf
+                _pokeHost = CreatePokeButton(shelf.transform, "Poke_Host", "POKE: HOST", new Vector3(-0.52f, 0.05f, 0f), new Color(0.12f, 0.45f, 0.85f));
+                _pokeJoin = CreatePokeButton(shelf.transform, "Poke_Join", "POKE: JOIN", new Vector3(-0.17f, 0.05f, 0f), new Color(0.12f, 0.70f, 0.35f));
+                _pokeMyIp = CreatePokeButton(shelf.transform, "Poke_MyIP", "POKE: MY IP", new Vector3(0.17f, 0.05f, 0f), new Color(0.95f, 0.75f, 0.15f));
+                _pokeDisconnect = CreatePokeButton(shelf.transform, "Poke_Disconnect", "POKE: LEAVE", new Vector3(0.52f, 0.05f, 0f), new Color(0.85f, 0.20f, 0.20f));
+            }
+            else
+            {
+                if (_pokeHost == null) _pokeHost = existingShelf.Find("Poke_Host")?.GetComponent<VRPokeInteractable>();
+                if (_pokeJoin == null) _pokeJoin = existingShelf.Find("Poke_Join")?.GetComponent<VRPokeInteractable>();
+                if (_pokeMyIp == null) _pokeMyIp = existingShelf.Find("Poke_MyIP")?.GetComponent<VRPokeInteractable>();
+                if (_pokeDisconnect == null) _pokeDisconnect = existingShelf.Find("Poke_Disconnect")?.GetComponent<VRPokeInteractable>();
+            }
+
+            // 2. Root World-Space Canvas: positioned flush on the housing face at eye level (y = 1.48m)
             var canvasObj = new GameObject("VRNetworkWorldCanvas");
             canvasObj.transform.SetParent(transform, false);
-            canvasObj.transform.localPosition = new Vector3(0f, 0f, 0f);
-            canvasObj.transform.localRotation = Quaternion.identity;
+            canvasObj.transform.localPosition = new Vector3(0f, 1.48f, -0.075f);
+            canvasObj.transform.localRotation = Quaternion.Euler(-5f, 0f, 0f);
             canvasObj.transform.localScale = new Vector3(0.0014f, 0.0014f, 0.0014f);
 
             var canvas = canvasObj.AddComponent<Canvas>();
@@ -566,6 +611,64 @@ namespace ShootingRange.UI
             CreateUIText(canvasObj.transform, "HintText", "Tip: In VR Headset, press Left Controller 'Y' button (or 'M' on PC) anytime to summon this menu in front of you!", 14, new Color(0.75f, 0.85f, 0.95f), TextAnchor.MiddleLeft, new Vector2(100f, -315f), new Vector2(720f, 35f), font, false);
         }
 
+        private static VRPokeInteractable CreatePokeButton(Transform parent, string name, string label, Vector3 localPos, Color capColor)
+        {
+            var buttonRoot = new GameObject(name);
+            buttonRoot.transform.SetParent(parent, false);
+            buttonRoot.transform.localPosition = localPos;
+            buttonRoot.transform.localRotation = Quaternion.identity;
+
+            // Base socket collar
+            var socket = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            socket.name = "Socket";
+            socket.transform.SetParent(buttonRoot.transform, false);
+            socket.transform.localPosition = Vector3.zero;
+            socket.transform.localScale = new Vector3(0.24f, 0.04f, 0.16f);
+            Destroy(socket.GetComponent<Collider>());
+
+            // Moving Cap
+            var cap = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cap.name = "MovingCap";
+            cap.transform.SetParent(buttonRoot.transform, false);
+            cap.transform.localPosition = new Vector3(0f, 0.035f, 0f);
+            cap.transform.localScale = new Vector3(0.20f, 0.05f, 0.13f);
+            var rend = cap.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                var mat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Universal Render Pipeline/Simple Lit") ?? Shader.Find("Standard"));
+                mat.color = capColor;
+                rend.sharedMaterial = mat;
+            }
+            Destroy(cap.GetComponent<Collider>());
+
+            // 3D Floating TextMesh Label
+            var labelObj = new GameObject("Label3D");
+            labelObj.transform.SetParent(buttonRoot.transform, false);
+            labelObj.transform.localPosition = new Vector3(0f, 0.075f, 0.02f);
+            labelObj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            var tm = labelObj.AddComponent<TextMesh>();
+            tm.text = label;
+            tm.characterSize = 0.015f;
+            tm.fontSize = 32;
+            tm.fontStyle = FontStyle.Bold;
+            tm.alignment = TextAlignment.Center;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.color = Color.white;
+
+            // Trigger BoxCollider and Rigidbody for poke & ray interaction
+            var rb = buttonRoot.AddComponent<Rigidbody>();
+            rb.isKinematic = true;
+            rb.useGravity = false;
+
+            var col = buttonRoot.AddComponent<BoxCollider>();
+            col.isTrigger = true;
+            col.center = new Vector3(0f, 0.04f, 0f);
+            col.size = new Vector3(0.24f, 0.12f, 0.20f);
+
+            var poke = buttonRoot.AddComponent<VRPokeInteractable>();
+            return poke;
+        }
+
         private static GameObject CreateUIPanel(Transform parent, string name, Vector2 pos, Vector2 size, Color color)
         {
             var go = new GameObject(name);
@@ -627,7 +730,7 @@ namespace ShootingRange.UI
 
         /// <summary>
         /// Auto-spawns the World-Space VR LAN Terminal at runtime if not present in the scene.
-        /// Guaranteed to work in Play Mode without needing manual scene rebuilding.
+        /// Fully elevated at eye level (y = 1.45m), completely above the floor!
         /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoEnsureWorldSpaceTerminal()
@@ -636,11 +739,11 @@ namespace ShootingRange.UI
 
             var terminalRoot = new GameObject("WorldSpaceLANTerminalKiosk");
             // Positioned at the right side of the firing line (mirroring Settings Kiosk at -5.2f, 0f, 2.2f)
-            terminalRoot.transform.position = new Vector3(5.2f, 0f, 2.2f);
-            terminalRoot.transform.rotation = Quaternion.Euler(0f, -45f, 0f);
+            terminalRoot.transform.position = s_DefaultStationaryPos;
+            terminalRoot.transform.rotation = s_DefaultStationaryRot;
 
-            terminalRoot.AddComponent<WorldSpaceNetworkUI>();
+            var ui = terminalRoot.AddComponent<WorldSpaceNetworkUI>();
+            ui.EnsureCanvasConstructed();
         }
     }
 }
-
