@@ -21,8 +21,13 @@ namespace ShootingRange.Targets
         [SerializeField] protected int _targetId;
         [SerializeField] protected bool _isActive = true;
         [SerializeField] protected bool _isDestroyed = false;
+        [SerializeField] protected bool _isNetworkControlled = false;
         [SerializeField] protected Vector3 _spawnPosition;
         [SerializeField] protected Quaternion _spawnRotation = Quaternion.identity;
+
+        // Network synchronization targets for client-side interpolation
+        private Vector3 _networkTargetPos;
+        private Quaternion _networkTargetRot = Quaternion.identity;
 
         // Physical spring-damper wobble
         private float _wobbleTimer = 99f;
@@ -52,6 +57,11 @@ namespace ShootingRange.Targets
         public float Health => _currentHealth;
         public float MaxHealth => _maxHealth;
         public bool IsDestroyed => _isDestroyed;
+        public bool IsNetworkControlled
+        {
+            get => _isNetworkControlled;
+            set => _isNetworkControlled = value;
+        }
 
         public event Action<ITargetEntity, float, HitZone, ulong> OnTargetHit;
         public event Action<ITargetEntity, ulong> OnTargetDestroyed;
@@ -96,6 +106,8 @@ namespace ShootingRange.Targets
             _targetId = id;
             _spawnPosition = spawnPosition;
             _spawnRotation = spawnRotation;
+            _networkTargetPos = spawnPosition;
+            _networkTargetRot = spawnRotation;
             transform.position = spawnPosition;
             transform.rotation = spawnRotation;
             ResetTarget();
@@ -148,16 +160,31 @@ namespace ShootingRange.Targets
             // 4. Handle Destroyed State & In-Place Reset Timer
             if (_isDestroyed)
             {
-                _resetTimer -= deltaTime;
-                if (_resetTimer <= 0f)
+                // Only host/offline runs the autonomous reset timer; network clients follow server's state
+                if (!_isNetworkControlled)
                 {
-                    ResetTarget();
+                    _resetTimer -= deltaTime;
+                    if (_resetTimer <= 0f)
+                    {
+                        ResetTarget();
+                    }
                 }
                 return; // Do not execute movement while downed
             }
 
-            // 5. Execute Custom Target Movement
-            StepMovement(deltaTime);
+            // 5. Execute Custom Target Movement or Interpolate Server-Authoritative State
+            if (_isNetworkControlled)
+            {
+                if (_networkTargetPos != Vector3.zero)
+                {
+                    transform.position = Vector3.Lerp(transform.position, _networkTargetPos, deltaTime * 25.0f);
+                    transform.rotation = Quaternion.Slerp(transform.rotation, _networkTargetRot, deltaTime * 25.0f);
+                }
+            }
+            else
+            {
+                StepMovement(deltaTime);
+            }
         }
 
         protected abstract void StepMovement(float deltaTime);
@@ -191,6 +218,11 @@ namespace ShootingRange.Targets
 
         public virtual void ApplySynchronizedState(float health, bool isDestroyed, Vector3 position)
         {
+            ApplySynchronizedState(health, isDestroyed, position, transform.rotation);
+        }
+
+        public virtual void ApplySynchronizedState(float health, bool isDestroyed, Vector3 position, Quaternion rotation)
+        {
             _currentHealth = health;
             if (isDestroyed && !_isDestroyed)
             {
@@ -205,8 +237,27 @@ namespace ShootingRange.Targets
 
             if (position != Vector3.zero)
             {
-                transform.position = position;
+                _networkTargetPos = position;
+                _networkTargetRot = rotation;
+
+                // Snap immediately if distance error is large (> 2.5m, e.g. on initial spawn or teleport)
+                if (Vector3.Distance(transform.position, position) > 2.5f)
+                {
+                    transform.position = position;
+                    transform.rotation = rotation;
+                }
             }
+        }
+
+        public virtual void TriggerNetworkHitReaction(float amount, HitZone zone, Vector3 hitPoint)
+        {
+            Vector3 hitNormal = (hitPoint - transform.position).normalized;
+            Vector3 cross = Vector3.Cross(transform.up, -hitNormal).normalized;
+            _wobbleAxis = cross.sqrMagnitude > 0.05f ? cross : transform.right;
+            _wobbleImpulse = Mathf.Clamp(amount * 0.16f, 3.5f, _maxWobbleDegrees);
+            _wobbleTimer = 0f;
+
+            _hitFlashTimer = 0.12f;
         }
 
         protected virtual void OnDestroyedReaction()

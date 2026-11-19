@@ -48,11 +48,19 @@ namespace ShootingRange.Multiplayer
             NetworkVariableWritePermission.Server
         );
 
+        public NetworkVariable<int> SynchronizedActiveTargetCount = new NetworkVariable<int>(
+            8,
+            NetworkVariableReadPermission.Everyone,
+            NetworkVariableWritePermission.Server
+        );
+
         private TargetManager _targetManager;
         private readonly Dictionary<ulong, int> _playerScores = new Dictionary<ulong, int>();
         private string _statusMessage = "Offline (Singleplayer)";
         private float _lastPingTime;
         private float _estimatedLatencyMs = 0f;
+        private float _targetSyncTimer;
+        private const float TargetSyncInterval = 0.05f; // 20 Hz server-authoritative target streaming rate
 
         // Circular history buffer for lag compensation rewind
         private struct TargetHistoricalSnapshot
@@ -175,12 +183,17 @@ namespace ShootingRange.Multiplayer
         public override void OnNetworkSpawn()
         {
             SynchronizedScore.OnValueChanged += HandleScoreChanged;
+            SynchronizedActiveTargetCount.OnValueChanged += HandleActiveTargetCountChanged;
 
             if (IsServer)
             {
                 if (NetworkManager.Singleton != null && NetworkManager.Singleton.ConnectedClients != null)
                 {
                     SynchronizedPlayerCount.Value = NetworkManager.Singleton.ConnectedClients.Count;
+                }
+                if (_targetManager != null)
+                {
+                    SynchronizedActiveTargetCount.Value = _targetManager.ActiveTargetLimit;
                 }
                 _statusMessage = "Hosting LAN Session (Server + Player 1 Active)";
                 NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
@@ -190,6 +203,12 @@ namespace ShootingRange.Multiplayer
             {
                 _statusMessage = "Connected to Host (Co-Op Active)";
                 _estimatedLatencyMs = 80f; // ~80ms baseline for LAN
+
+                // Client synchronizes initial active target count if already received
+                if (_targetManager != null && SynchronizedActiveTargetCount.Value > 0)
+                {
+                    _targetManager.ApplyActiveTargetCount(SynchronizedActiveTargetCount.Value);
+                }
             }
 
             OnConnectionStateChanged?.Invoke();
@@ -198,6 +217,7 @@ namespace ShootingRange.Multiplayer
         public override void OnNetworkDespawn()
         {
             SynchronizedScore.OnValueChanged -= HandleScoreChanged;
+            SynchronizedActiveTargetCount.OnValueChanged -= HandleActiveTargetCountChanged;
 
             if (IsServer && NetworkManager.Singleton != null)
             {
@@ -209,6 +229,42 @@ namespace ShootingRange.Multiplayer
             OnConnectionStateChanged?.Invoke();
         }
 
+        private void HandleActiveTargetCountChanged(int oldCount, int newCount)
+        {
+            if (_targetManager != null && _targetManager.ActiveTargetLimit != newCount)
+            {
+                _targetManager.ApplyActiveTargetCount(newCount);
+            }
+        }
+
+        public void RequestChangeActiveTargetCount(int newCount)
+        {
+            if (!IsActive)
+            {
+                _targetManager?.ApplyActiveTargetCount(newCount);
+                return;
+            }
+
+            if (IsServer)
+            {
+                int clamped = Mathf.Clamp(newCount, 1, 300);
+                SynchronizedActiveTargetCount.Value = clamped;
+                _targetManager?.ApplyActiveTargetCount(clamped);
+            }
+            else
+            {
+                RequestChangeActiveTargetCountServerRpc(newCount);
+            }
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        private void RequestChangeActiveTargetCountServerRpc(int newCount)
+        {
+            int clamped = Mathf.Clamp(newCount, 1, 300);
+            SynchronizedActiveTargetCount.Value = clamped;
+            _targetManager?.ApplyActiveTargetCount(clamped);
+        }
+
         private void Update()
         {
             if (IsServer && IsActive)
@@ -217,6 +273,14 @@ namespace ShootingRange.Multiplayer
                 if (RoundTimeRemaining.Value > 0f)
                 {
                     RoundTimeRemaining.Value -= Time.deltaTime;
+                }
+
+                // 20 Hz server-authoritative target state streaming to clients
+                _targetSyncTimer += Time.deltaTime;
+                if (_targetSyncTimer >= TargetSyncInterval)
+                {
+                    _targetSyncTimer = 0f;
+                    UpdateServerTargetSync();
                 }
             }
 
@@ -230,6 +294,84 @@ namespace ShootingRange.Multiplayer
                     if (transport != null)
                     {
                         ulong rtt = transport.GetCurrentRtt(NetworkManager.ServerClientId);
+                        if (rtt > 0) _estimatedLatencyMs = rtt;
+                    }
+                }
+            }
+        }
+
+        private void UpdateServerTargetSync()
+        {
+            if (_targetManager == null || ConnectedPlayerCount <= 1) return;
+
+            var targets = _targetManager.AllTargets;
+            if (targets == null || targets.Count == 0) return;
+
+            int limit = _targetManager.ActiveTargetLimit;
+            int syncCount = Mathf.Min(limit, targets.Count);
+            if (syncCount <= 0) return;
+
+            int[] ids = new int[syncCount];
+            Vector3[] positions = new Vector3[syncCount];
+            Quaternion[] rotations = new Quaternion[syncCount];
+            float[] healths = new float[syncCount];
+            bool[] destroyed = new bool[syncCount];
+
+            for (int i = 0; i < syncCount; i++)
+            {
+                var t = targets[i];
+                if (t == null) continue;
+
+                ids[i] = t.TargetId;
+                healths[i] = t.Health;
+                destroyed[i] = t is TargetEntity te ? te.IsDestroyed : (t.Health <= 0f);
+
+                if (t.Transform != null)
+                {
+                    positions[i] = t.Transform.position;
+                    if (t is PopUpTarget popup)
+                    {
+                        rotations[i] = popup.HingeLocalRotation;
+                    }
+                    else
+                    {
+                        rotations[i] = t.Transform.rotation;
+                    }
+                }
+                else
+                {
+                    positions[i] = Vector3.zero;
+                    rotations[i] = Quaternion.identity;
+                }
+            }
+
+            SyncActiveTargetsClientRpc(limit, ids, positions, rotations, healths, destroyed);
+        }
+
+        [ClientRpc]
+        private void SyncActiveTargetsClientRpc(int activeLimit, int[] targetIds, Vector3[] positions, Quaternion[] rotations, float[] healths, bool[] destroyed)
+        {
+            if (IsServer) return; // Server already steps authoritative target simulation
+
+            if (_targetManager == null || targetIds == null) return;
+
+            // Ensure active target limit matches authoritative server
+            if (_targetManager.ActiveTargetLimit != activeLimit)
+            {
+                _targetManager.ApplyActiveTargetCount(activeLimit);
+            }
+
+            for (int i = 0; i < targetIds.Length; i++)
+            {
+                var target = _targetManager.GetTargetById(targetIds[i]);
+                if (target != null)
+                {
+                    target.IsNetworkControlled = true;
+                    Quaternion rot = (rotations != null && i < rotations.Length) ? rotations[i] : Quaternion.identity;
+                    target.ApplySynchronizedState(healths[i], destroyed[i], positions[i], rot);
+                }
+            }
+        }
                         if (rtt > 0) _estimatedLatencyMs = rtt;
                     }
                 }
@@ -566,7 +708,8 @@ namespace ShootingRange.Multiplayer
 
                         // Synchronize updated target state to all clients
                         bool isDestroyed = target is TargetEntity te ? te.IsDestroyed : (target.Health <= 0f);
-                        SyncTargetStateClientRpc(targetId, target.Health, isDestroyed, target.Transform != null ? target.Transform.position : Vector3.zero);
+                        Quaternion rot = (target is PopUpTarget pt) ? pt.HingeLocalRotation : (target.Transform != null ? target.Transform.rotation : Quaternion.identity);
+                        SyncTargetStateClientRpc(targetId, target.Health, isDestroyed, target.Transform != null ? target.Transform.position : Vector3.zero, rot);
                     }
                 }
             }
@@ -618,32 +761,48 @@ namespace ShootingRange.Multiplayer
         {
             HitZone zone = (HitZone)zoneInt;
             OnNetworkHitValidated?.Invoke(shooterId, targetId, zone, damage);
+
+            if (_targetManager != null)
+            {
+                var target = _targetManager.GetTargetById(targetId);
+                if (target != null)
+                {
+                    target.TriggerNetworkHitReaction(damage, zone, hitPoint);
+                }
+            }
         }
 
         [ClientRpc]
-        private void SyncTargetStateClientRpc(int targetId, float health, bool isDestroyed, Vector3 position)
+        private void SyncTargetStateClientRpc(int targetId, float health, bool isDestroyed, Vector3 position, Quaternion rotation)
         {
             if (_targetManager != null)
             {
                 var target = _targetManager.GetTargetById(targetId);
                 if (target != null)
                 {
-                    target.ApplySynchronizedState(health, isDestroyed, position);
+                    target.ApplySynchronizedState(health, isDestroyed, position, rotation);
                 }
             }
         }
 
         [ClientRpc]
-        private void InitialStateSyncClientRpc(int score, float timeRemaining, int[] targetIds, float[] healths, bool[] destroyed, Vector3[] positions, ClientRpcParams clientRpcParams = default)
+        private void InitialStateSyncClientRpc(int score, float timeRemaining, int activeLimit, int[] targetIds, float[] healths, bool[] destroyed, Vector3[] positions, Quaternion[] rotations, ClientRpcParams clientRpcParams = default)
         {
-            if (_targetManager != null && targetIds != null)
+            if (_targetManager != null)
             {
-                for (int i = 0; i < targetIds.Length; i++)
+                _targetManager.ApplyActiveTargetCount(activeLimit);
+
+                if (targetIds != null)
                 {
-                    var target = _targetManager.GetTargetById(targetIds[i]);
-                    if (target != null)
+                    for (int i = 0; i < targetIds.Length; i++)
                     {
-                        target.ApplySynchronizedState(healths[i], destroyed[i], positions[i]);
+                        var target = _targetManager.GetTargetById(targetIds[i]);
+                        if (target != null)
+                        {
+                            target.IsNetworkControlled = true;
+                            Quaternion rot = (rotations != null && i < rotations.Length) ? rotations[i] : Quaternion.identity;
+                            target.ApplySynchronizedState(healths[i], destroyed[i], positions[i], rot);
+                        }
                     }
                 }
             }
@@ -688,6 +847,7 @@ namespace ShootingRange.Multiplayer
                     float[] healths = new float[count];
                     bool[] destroyed = new bool[count];
                     Vector3[] positions = new Vector3[count];
+                    Quaternion[] rotations = new Quaternion[count];
 
                     for (int i = 0; i < count; i++)
                     {
@@ -695,6 +855,7 @@ namespace ShootingRange.Multiplayer
                         healths[i] = targets[i].Health;
                         destroyed[i] = targets[i] is TargetEntity te ? te.IsDestroyed : (targets[i].Health <= 0f);
                         positions[i] = targets[i].Transform != null ? targets[i].Transform.position : Vector3.zero;
+                        rotations[i] = (targets[i] is PopUpTarget pt) ? pt.HingeLocalRotation : (targets[i].Transform != null ? targets[i].Transform.rotation : Quaternion.identity);
                     }
 
                     var clientParams = new ClientRpcParams
@@ -705,7 +866,7 @@ namespace ShootingRange.Multiplayer
                         }
                     };
 
-                    InitialStateSyncClientRpc(SynchronizedScore.Value, RoundTimeRemaining.Value, ids, healths, destroyed, positions, clientParams);
+                    InitialStateSyncClientRpc(SynchronizedScore.Value, RoundTimeRemaining.Value, _targetManager.ActiveTargetLimit, ids, healths, destroyed, positions, rotations, clientParams);
                 }
             }
         }

@@ -34,6 +34,25 @@ namespace ShootingRange.Targets
         private readonly List<ITargetEntity> _activeTargets = new List<ITargetEntity>(MaxSimulatedTargets);
         private readonly List<ITargetEntity> _allRegisteredTargets = new List<ITargetEntity>(MaxSimulatedTargets);
         private int _nextTargetId = 1;
+        private INetworkSession _networkSession;
+
+        private INetworkSession EnsureNetworkSession()
+        {
+            if (_networkSession != null) return _networkSession;
+            if (ShootingRangeCompositionRoot.Container != null)
+            {
+                ShootingRangeCompositionRoot.Container.TryResolve(out _networkSession);
+            }
+            if (_networkSession == null)
+            {
+                var provs = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+                foreach (var p in provs)
+                {
+                    if (p is INetworkSession ns) { _networkSession = ns; break; }
+                }
+            }
+            return _networkSession;
+        }
 
         public int ActiveTargetCount => _activeTargets.Count;
         public int TotalScore => _totalScore;
@@ -80,6 +99,26 @@ namespace ShootingRange.Targets
         public void SetActiveTargetCount(int newCount)
         {
             newCount = Mathf.Clamp(newCount, 1, _allRegisteredTargets.Count);
+
+            var ns = EnsureNetworkSession();
+            if (ns != null && ns.IsActive && !ns.IsHost)
+            {
+                // Network client delegates request to authoritative host
+                ns.RequestChangeActiveTargetCount(newCount);
+                return;
+            }
+
+            // Server or singleplayer applies locally and notifies network session
+            ApplyActiveTargetCount(newCount);
+            if (ns != null && ns.IsActive && ns.IsHost)
+            {
+                ns.RequestChangeActiveTargetCount(newCount);
+            }
+        }
+
+        public void ApplyActiveTargetCount(int newCount)
+        {
+            newCount = Mathf.Clamp(newCount, 1, _allRegisteredTargets.Count);
             _activeTargetCount = newCount;
 
             _activeTargets.Clear();
@@ -119,9 +158,13 @@ namespace ShootingRange.Targets
         {
             using (RangeProfilerMarkers.TargetsSim.Auto())
             {
+                var ns = EnsureNetworkSession();
+                bool isNetworkClient = ns != null && ns.IsActive && !ns.IsHost;
+
                 int count = _activeTargets.Count;
                 for (int i = 0; i < count; i++)
                 {
+                    _activeTargets[i].IsNetworkControlled = isNetworkClient;
                     _activeTargets[i].Step(deltaTime);
                 }
             }

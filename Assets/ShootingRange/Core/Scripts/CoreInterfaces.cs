@@ -203,10 +203,13 @@ namespace ShootingRange.Core
         bool IsActive { get; }
         Transform Transform { get; }
         float Health { get; }
+        bool IsNetworkControlled { get; set; }
         void Initialize(int id, Vector3 spawnPosition, Quaternion spawnRotation);
         void Step(float deltaTime);
         void ApplyDamage(float amount, HitZone zone, Vector3 hitPoint, Vector3 hitNormal, ulong attackerClientId);
         void ApplySynchronizedState(float health, bool isDestroyed, Vector3 position);
+        void ApplySynchronizedState(float health, bool isDestroyed, Vector3 position, Quaternion rotation);
+        void TriggerNetworkHitReaction(float amount, HitZone zone, Vector3 hitPoint);
         void ResetTarget();
         event Action<ITargetEntity, float, HitZone, ulong> OnTargetHit;
         event Action<ITargetEntity, ulong> OnTargetDestroyed;
@@ -215,6 +218,7 @@ namespace ShootingRange.Core
     public interface ITargetSimulation
     {
         int ActiveTargetCount { get; }
+        int ActiveTargetLimit { get; }
         IReadOnlyList<ITargetEntity> AllTargets { get; }
         ITargetEntity GetTargetById(int id);
         void RegisterTarget(ITargetEntity target);
@@ -243,6 +247,7 @@ namespace ShootingRange.Core
         Vector3 GetSpawnPosition(ulong clientId);
         Quaternion GetSpawnRotation(ulong clientId);
         string GetSpawnLaneName(ulong clientId);
+        void RequestChangeActiveTargetCount(int newCount);
 
         void ReportHit(ulong shooterId, int targetId, HitZone zone, float damage, Vector3 hitPoint);
         void BroadcastShot(ulong shooterId, Vector3 muzzlePos, Vector3 velocity, WeaponType weaponType);
