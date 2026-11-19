@@ -372,11 +372,6 @@ namespace ShootingRange.Multiplayer
                 }
             }
         }
-                        if (rtt > 0) _estimatedLatencyMs = rtt;
-                    }
-                }
-            }
-        }
 
         private void UpdateLagCompensationSnapshots()
         {
