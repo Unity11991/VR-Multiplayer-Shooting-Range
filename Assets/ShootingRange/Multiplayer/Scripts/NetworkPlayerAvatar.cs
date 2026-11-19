@@ -112,10 +112,15 @@ namespace ShootingRange.Multiplayer
                 }
                 else
                 {
-                    var sim = FindFirstObjectByType<ShootingRange.Input.DesktopVRSimulator>();
-                    if (sim != null)
+                    var allTrackers = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+                    foreach (var m in allTrackers)
                     {
-                        sim.Teleport(spawnPos, spawnRot);
+                        if (m is ITrackingProvider tp)
+                        {
+                            _localTracking = tp;
+                            tp.Teleport(spawnPos, spawnRot);
+                            break;
+                        }
                     }
                 }
             }
