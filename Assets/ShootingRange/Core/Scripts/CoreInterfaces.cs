@@ -265,6 +265,8 @@ namespace ShootingRange.Core
         event Action<ulong, int> OnScoreUpdated;
         event Action<ulong, Vector3, Vector3, WeaponType> OnRemoteShotFired;
         event Action OnConnectionStateChanged;
+        event Action OnPlayerConnected;
+        event Action OnPlayerDisconnected;
     }
 
     public struct ReplayStats

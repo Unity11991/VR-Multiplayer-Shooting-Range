@@ -643,3 +643,4 @@ namespace ShootingRange.UI
         }
     }
 }
+
