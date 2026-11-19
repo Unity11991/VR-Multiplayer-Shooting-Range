@@ -132,10 +132,10 @@ namespace ShootingRange.Targets
                     lifetime = 1.05f;
                     break;
 
-                case HitZone.Bullseye:
-                    label = $"+{Mathf.Max(100, baseScore * 2)}";
-                    col = new Color(0.15f, 1.0f, 1.0f); // Bright Laser Cyan
-                    scale = 1.20f;
+                case HitZone.Body:
+                    label = $"+{Mathf.Max(100, baseScore)}";
+                    col = new Color(0.2f, 0.9f, 1.0f); // Bright Laser Cyan
+                    scale = 1.15f;
                     break;
 
                 case HitZone.Limb:
@@ -144,7 +144,6 @@ namespace ShootingRange.Targets
                     scale = 0.95f;
                     break;
 
-                case HitZone.Body:
                 default:
                     label = $"+{Mathf.Max(50, baseScore)}";
                     col = Color.white;
@@ -276,3 +275,4 @@ namespace ShootingRange.Targets
         }
     }
 }
+
